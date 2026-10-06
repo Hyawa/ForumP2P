@@ -16,6 +16,11 @@ PeerForum P2P v2 tem que ser um grupo fechado, anonimo e totalmente descentraliz
 > synchronization work end to end, plus an anonymous (Tor) mode. Moderation,
 > labels-as-votes and search are follow-ups.
 
+> 📖 **Ficou com dúvida?** Existe um passo a passo completo de como ficar
+> **100% anônimo com o Tor** — no PC (Windows, Linux, macOS) e no celular
+> (Android/iOS) — em **[`docs/TUTORIAL.md`](docs/TUTORIAL.md)**. Se algo não
+> funcionar, leia o tutorial antes de perguntar. 🙂
+
 ## Uma internet livre, anônima e descentralizada
 
 O PeerForum existe para provar uma coisa: dá para conversar, organizar
@@ -84,6 +89,9 @@ descomente o bloco acima para mostrá-las aqui.
 
 Você **não precisa hospedar nada, criar conta ou saber programar**. É só instalar
 e convidar.
+
+> 🔐 **Quer anonimato total?** O passo a passo de como ligar o **Tor** e ficar
+> 100% anônimo (PC e celular) está em **[`docs/TUTORIAL.md`](docs/TUTORIAL.md)**.
 
 ### Passo 1 — Baixe o app para desktop
 
@@ -376,6 +384,9 @@ traffic.
 change persists across restarts. The tab also lets you set the SOCKS host/port
 and your `.onion` address. When Tor is off, a warning banner reminds you that
 your network address may be exposed.
+
+📖 Full step-by-step for **Windows, Linux, macOS and Android** (and the iOS
+status) is in **[`docs/TUTORIAL.md`](docs/TUTORIAL.md)**.
 
 1. Run Tor (or [Arti](https://arti.torproject.org/)) with a SOCKS port and a
    hidden service that forwards to the node's loopback listener:
