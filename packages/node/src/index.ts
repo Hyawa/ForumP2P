@@ -3,3 +3,4 @@ export * from './libp2p-node';
 export * from './rpc';
 export * from './sync';
 export * from './daemon';
+export * from './transports/tor';

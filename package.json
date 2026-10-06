@@ -5,14 +5,18 @@
   "description": "PFP v2 - a modern, serverless P2P forum (clean TypeScript/libp2p rewrite of PeerForum)",
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json && npm -w @pforum/web run typecheck",
+    "typecheck": "tsc --noEmit -p tsconfig.json && npm -w @pforum/web run typecheck && npm -w @pforum/desktop run typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
     "daemon": "tsx packages/node/src/cli.ts",
-    "web": "npm -w @pforum/web run dev"
+    "web": "npm -w @pforum/web run dev",
+    "desktop": "npm -w @pforum/desktop run dev",
+    "desktop:dist": "npm -w @pforum/desktop run dist",
+    "mobile:sync": "npm -w @pforum/mobile run sync"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

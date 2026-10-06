@@ -1,0 +1,29 @@
+{
+  "name": "@pforum/desktop",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PeerForum desktop app (Electron) bundling a full P2P node + web UI",
+  "author": "PeerForum",
+  "main": "dist/main.mjs",
+  "scripts": {
+    "build:web": "npm -w @pforum/web run build",
+    "build:main": "node scripts/build.mjs",
+    "build": "npm run build:web && npm run build:main",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "start": "electron .",
+    "dev": "npm run build:main && electron . --dev",
+    "smoke": "node scripts/build.mjs --smoke && node scripts/run-smoke.mjs",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "@pforum/core": "*",
+    "@pforum/node": "*",
+    "@pforum/protocol": "*"
+  },
+  "devDependencies": {
+    "electron": "35.7.5",
+    "electron-builder": "^26.0.0",
+    "esbuild": "^0.28.2"
+  }
+}

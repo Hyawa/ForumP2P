@@ -1,5 +1,8 @@
 # PeerForum (PFP v2)
 
+**PeerForum é software livre e de código aberto (open-source) para comunidades
+anônimas e descentralizadas.** Sem servidor, sem cadastro, sem hospedagem.
+
 A modern, serverless, peer-to-peer forum. This is a clean TypeScript rewrite of
 [saintthor/PeerForum](https://github.com/saintthor/PeerForum) (a 2015 Python 2
 project, "a p2p forum with no server needed"), keeping its core ideas —
@@ -7,11 +10,189 @@ project, "a p2p forum with no server needed"), keeping its core ideas —
 **set-reconciliation sync over a gossip network** — while replacing the
 hand-rolled crypto and HTTP polling with modern primitives.
 
-PeerForum P2P v2 tem que ser um grupo fechado, anonimo e totalmente descentralizado onde ninguem sabe quem é quem. Detalhe ele pode ser usado para criar qualquer tipo de comunidade totalmente anonima e descentralizada. Imagina uma comunidade onde pessoas querem se reunir para falar sobre carros, eles criam um fork do PeerForum, enviam os convites de uma pessoa para outra e controla quem entra quem sai como se fosse um grupo privado no whatsapp só que tem servidor central e totalmente P2P e esse grupo pode ter quantos membros quiser
+PeerForum P2P v2 tem que ser um grupo fechado, anonimo e totalmente descentralizado onde ninguem sabe quem é quem. Detalhe ele pode ser usado para criar qualquer tipo de comunidade totalmente anonima e descentralizada. Imagina uma comunidade onde pessoas querem se reunir para falar sobre carros, eles criam um fork do PeerForum, enviam os convites de uma pessoa para outra e controla quem entra quem sai como se fosse um grupo privado no whatsapp só que sem servidor central e totalmente P2P e esse grupo pode ter quantos membros quiser
 
 > Status: MVP. Identity, signed posts, topics-as-trees, peer discovery and P2P
-> synchronization work end to end. Moderation, labels-as-votes and search are
-> follow-ups.
+> synchronization work end to end, plus an anonymous (Tor) mode. Moderation,
+> labels-as-votes and search are follow-ups.
+
+## Uma internet livre, anônima e descentralizada
+
+O PeerForum existe para provar uma coisa: dá para conversar, organizar
+comunidades e trocar ideias em uma **internet livre, anônima e descentralizada**
+— sem servidores, sem donos e sem vigilância. Ele é **100% open-source** e foi
+feito para ser usado, estudado, modificado e copiado por qualquer pessoa.
+
+- **Sem servidor central.** Não existe empresa, nuvem ou autoridade no meio do
+  caminho. Cada pessoa roda o próprio nó e os dados vivem no aparelho de cada
+  membro.
+- **Sem cadastro.** Nada de e-mail, telefone ou login. Sua identidade é uma
+  chave criptográfica gerada no seu próprio dispositivo.
+- **Sem hospedagem.** Você **não precisa hospedar em lugar nenhum** — não há
+  nada para alugar, configurar ou "subir no ar".
+- **Anônimo por design.** No [modo Tor](#anonymous-mode-tor) todo o tráfego
+  passa pela rede Tor e **nenhum membro vê o IP de outro**.
+- **P2P de verdade.** As mensagens circulam direto entre os membros
+  (*peer-to-peer*), com criptografia no transporte. Se um peer cai, a rede
+  continua.
+
+Em resumo: **é totalmente anônimo e totalmente P2P, e não precisa de servidor.**
+
+## Código aberto, feito para ser forkado
+
+Este repositório é aberto e colaborativo: leia, estude, critique, melhore e
+**faça um fork**. Quer uma comunidade com a sua cara? É simples:
+
+- **Faça um fork** do projeto e mude o que quiser.
+- **Mude a aparência** (cores, logo, nome, textos) editando o UI em
+  [`packages/web`](packages/web) — é React + Vite.
+- **Mude o comportamento** no protocolo e no nó em
+  [`packages/protocol`](packages/protocol), [`packages/core`](packages/core) e
+  [`packages/node`](packages/node).
+- **Gere o seu próprio instalador** com `npm -w @pforum/desktop run dist` — o
+  passo a passo está em [`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md).
+
+Você também pode simplesmente **baixar uma versão e mexer no código**: o projeto
+é seu. Quanto mais gente forkando e contribuindo, mais forte fica a rede.
+
+## Vídeo de apresentação
+
+> 🎬 **Vídeo de apresentação (YouTube):** _em breve_.
+
+<!--
+TODO: ao publicar o vídeo, substitua a linha acima por um embed, por exemplo:
+
+[![Assista ao PeerForum em ação](screenshots/video-thumbnail.png)](https://www.youtube.com/watch?v=SEU_VIDEO_ID)
+-->
+
+## Screenshots
+
+<!--
+Coloque as capturas em screenshots/ (nomes sugeridos abaixo) e descomente o
+bloco para exibi-las. Enquanto não houver imagens, mantemos este aviso.
+
+| Tela inicial | Criar uma network | Convite via QR | Conversa |
+| --- | --- | --- | --- |
+| ![Tela inicial](screenshots/desktop.png) | ![Criar network](screenshots/criar-network.png) | ![Convite QR](screenshots/convite-qr.png) | ![Conversa](screenshots/conversa.png) |
+-->
+
+📸 As capturas de tela ficam em [`screenshots/`](screenshots). Adicione os
+arquivos `desktop.png`, `criar-network.png`, `convite-qr.png` e `conversa.png` e
+descomente o bloco acima para mostrá-las aqui.
+
+## Como usar (passo a passo)
+
+Você **não precisa hospedar nada, criar conta ou saber programar**. É só instalar
+e convidar.
+
+### Passo 1 — Baixe o app para desktop
+
+Acesse a página de **[Releases](../../releases)** do repositório no GitHub e
+baixe o instalador do seu sistema:
+
+- **Windows:** `PeerForum-2.0.0-setup.exe`
+- **macOS:** `PeerForum-2.0.0.dmg`
+- **Linux:** `PeerForum-2.0.0.AppImage`
+
+### Passo 2 — Instale e abra
+
+No Windows, execute o `.exe` e siga o instalador. Ao abrir, o PeerForum já cria
+sua **identidade anônima** e sobe um **nó** na sua própria máquina — sem servidor
+e sem nuvem.
+
+### Passo 3 — Crie sua "pool" (grupo / network)
+
+Na aba **Networks**, clique em **Criar network** e dê um nome à sua comunidade
+(ex.: *"Galera dos Carros"*). Pronto: você é o dono e administra quem entra e
+quem sai, como num grupo privado.
+
+### Passo 4 — Convide seus amigos (peers)
+
+Gere um **convite** (com validade e limite de usos) e compartilhe o **código**
+ou o **QR code**. Seu amigo abre o PeerForum dele, cola o código (ou lê o QR) e
+entra na sua rede — virando um **peer** conectado direto a você, **sem servidor
+no meio**.
+
+### Passo 5 — Converse
+
+Publique tópicos e responda. O conteúdo se replica automaticamente entre os
+membros pela rede P2P e chega a todos.
+
+> 🔒 **Para ficar anônimo de verdade:** rode o app em **modo Tor**
+> (veja [Anonymous mode](#anonymous-mode-tor)). Assim nem os outros membros nem
+> o seu provedor sabem com quem você fala.
+
+## How decentralization works
+
+There is **no server, no coordinator and no operator** anywhere in the system.
+Every participant runs a full node ("peer"), and the whole forum is the union of
+what peers replicate to each other.
+
+- **Peer-to-peer topology.** Nodes connect directly to each other over libp2p
+  (TCP/WebSocket, or Tor in anonymous mode). There is no backend to go down, no
+  central database, and no privileged node: any peer can join, leave or be
+  unreachable without breaking the rest.
+- **Data lives on every member's device.** Each node stores the full content it
+  knows in a local SQLite database (`node:sqlite`). Nothing is hosted for you —
+  your machine *is* the server.
+- **Content-addressed, signed posts.** An article's id is
+  `sha256(canonical(payload))`, and the payload is signed by its author. Every
+  peer independently **re-verifies the hash and the Ed25519 signature** before
+  storing anything, so no trust in a middleman is required and tampering changes
+  the id.
+- **Sync by set reconciliation over a gossip network.** Peers exchange topic
+  *snapshots* and then transfer only the missing delta, walking the article tree
+  (see [Sync](#sync--set-reconciliation-on-an-article-tree)). New peers are
+  discovered via libp2p `identify`, mDNS on a LAN, bootstrap addresses and peer
+  gossip — there is no central registry or DNS.
+- **Self-sovereign communities.** A **network** is defined by a signed,
+  append-only **roster log** (a hash chain of `create`/`add`/`remove`/`setRole`
+  ops). Membership is derived by folding that log (`foldRoster`) on every node,
+  so everyone computes the same member list independently. Owners and admins are
+  just roles in the log — there is no central authority.
+- **Invites instead of sign-ups.** Access is granted by a signed, expiring,
+  use-limited **invite code** (`PFPJOIN1.…`) shared person-to-person as text or
+  QR. No email, phone number or account provider is involved.
+- **Verifiable, not trusted.** Because identity is a keypair and content is
+  signed, "who can post/read" is enforced cryptographically by each node, not by
+  a server deciding for you.
+
+## How anonymity is protected
+
+The design treats anonymity as **layered**: pseudonymous identity, encrypted
+transport, and — for network-level anonymity — routing every connection through
+Tor so that peers never see each other's IP.
+
+| Layer | What it protects | How |
+| --- | --- | --- |
+| **No accounts** | No real-world identity to begin with | Identity is a locally generated **Ed25519 keypair** — no email, phone or OAuth. You are a public key. |
+| **Encrypted transport** | Content and authenticity in transit | libp2p **Noise** encrypts and authenticates every connection (plus Tor when enabled). |
+| **Network anonymity** | Your **IP address** | In `--tor` mode all dialing goes through a local Tor SOCKS5 proxy and peers are addressed only by `.onion` (a custom `@pforum/tor` libp2p transport). Tor onion services hide **both sides**. |
+| **No IP leakage** | Accidental deanonymization | mDNS and clearnet bootstrap are disabled; only `/onion3/…` multiaddrs are announced, shared in `/pforum/hello` and embedded in invites; `addPeer` rejects clearnet addresses and no IP is persisted. |
+| **Closed membership** | Who can read/serve content | Networks are invite-only; sync is scoped by `network_id` and non-members are refused. |
+| **Local-first control** | Exposure of your node | Keys stay on your disk; the control API binds to `127.0.0.1` and supports an optional bearer token (`--token`). |
+
+**Threat model (what this buys you):**
+
+- Other members cannot learn your IP — they only ever see a `.onion` address.
+- Your ISP cannot see *who* you talk to inside the forum; it only sees Tor
+  traffic (using [bridges](https://support.torproject.org/glossary/bridge/) hides
+  even that you use Tor).
+- A passive network observer watching one hop cannot map your posts to your
+  location.
+
+**Honest limits (what it does *not* do):**
+
+- It is **not "100% anonymity."** Tor resists correlation but cannot defeat a
+  global passive adversary that observes both ends of a circuit.
+- The **author key is stable**, so all of one user's posts are linkable to the
+  same public key (and across networks). Per-network unlinkable subkeys are on
+  the [roadmap](#roadmap).
+- Timing and traffic-pattern metadata still exist.
+- Private keys are currently stored **unencrypted** on disk (roadmap: encrypted
+  keystore).
+
+See [Anonymous mode (Tor)](#anonymous-mode-tor) for setup steps.
 
 ## What changed vs. the original
 
@@ -39,6 +220,9 @@ packages/
   core/       identity + SQLite storage + Article/Topic model + reconciliation engine
   node/       libp2p composition, stream handlers, sync loop, local daemon API (Fastify + SSE)
   web/        React + Vite UI
+apps/
+  desktop/    Electron shell — runs a full node and serves the UI as a desktop app
+  mobile/     Capacitor shell — native Android/iOS wrapper around the web UI
 ```
 
 ## The protocol (PFP v2)
@@ -170,6 +354,97 @@ same LAN are also discovered automatically via mDNS.
 --no-mdns              disable local-network discovery
 --no-sync              disable the periodic sync loop
 --sync-interval <ms>   sync cadence (default 15000)
+--tor                  anonymous mode: dial + announce only via Tor (.onion)
+--tor-socks <h:p>      Tor SOCKS5 proxy (default 127.0.0.1:9050)
+--onion <multiaddr>    onion address to announce, e.g. /onion3/<id>/tcp/80 (repeatable)
+--onion-dir <path>     HiddenService dir; reads its `hostname` file
+--onion-port <n>       HiddenService virtual port (default 80, with --onion-dir)
+--token <bearer>       require `Authorization: Bearer <token>` on the daemon API
+```
+
+## Anonymous mode (Tor)
+
+In `--tor` mode the node never dials or announces a clearnet address: mDNS and
+bootstrap are disabled, all outbound connections go through a local Tor SOCKS5
+proxy (an `@pforum/tor` libp2p transport), and only `.onion` multiaddrs are
+announced, shared in `/pforum/hello`, and embedded in invite codes. A peer can
+therefore reach you without ever learning your IP, and your ISP only sees Tor
+traffic.
+
+1. Run Tor (or [Arti](https://arti.torproject.org/)) with a SOCKS port and a
+   hidden service that forwards to the node's loopback listener:
+
+   ```
+   SocksPort 9050
+   HiddenServiceDir /var/lib/tor/pforum/
+   HiddenServicePort 80 127.0.0.1:4001
+   ```
+
+2. Start the node in anonymous mode (reads the onion host from the
+   HiddenService `hostname` file):
+
+   ```bash
+   npm run daemon -- --tor \
+     --onion-dir /var/lib/tor/pforum --onion-port 80 \
+     --listen /ip4/127.0.0.1/tcp/4001 --token "$PFORUM_TOKEN"
+   ```
+
+3. Share your `/onion3/...` multiaddr (printed at startup) or invite code.
+   Invites carry the onion address, so joining peers dial you through Tor.
+
+> **Scope.** This hides IP addresses from other members and from network
+> observers; it is not "100% anonymity". Timing/topology correlation and the
+> stable author key (all posts linkable to one pubkey) remain, and per-network
+> unlinkable identities are still a follow-up. Private keys are also still
+> stored in plaintext.
+
+## Desktop and mobile apps
+
+Two packaging targets live under `apps/`. Both reuse the same UI; the desktop
+app additionally **runs the node itself**. A step-by-step build/distribution
+guide lives in [`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md).
+
+### Desktop (Electron)
+
+The Electron main process starts a full `PFPNode` + daemon on a random loopback
+port and serves the built UI from that same origin (Chromium blocks ES modules
+over `file://`, so serving over HTTP keeps everything same-origin). Your machine
+is the server — the packaged app needs no backend.
+
+```bash
+npm install
+npm -w @pforum/desktop run dev      # develop (expects `npm run web` on :5173)
+npm -w @pforum/desktop run smoke    # boots node + daemon under Electron's Node
+npm -w @pforum/desktop run dist     # build installers into apps/desktop/release/
+```
+
+`electron-builder` produces an NSIS installer on Windows, a `.dmg` on macOS and
+an AppImage on Linux. To ship an **anonymous** build, launch it with the Tor
+environment variables (same semantics as the CLI flags):
+
+```bash
+PFORUM_TOR=1 \
+PFORUM_ONION_DIR=/var/lib/tor/pforum PFORUM_ONION_PORT=80 \
+PFORUM_TOR_SOCKS=127.0.0.1:9050 \
+peerforum
+```
+
+Other overrides: `PFORUM_DB`, `PFORUM_TOKEN`, `PFORUM_NO_SYNC`.
+
+### Mobile (Capacitor)
+
+The Capacitor shell bundles the web UI into native Android/iOS projects. A phone
+WebView cannot run the Node.js/libp2p node, so for now the app connects to a
+**PeerForum daemon over HTTP** (set `?api=<url>` or `localStorage.pf_api`; see
+`apps/mobile/README.md`). Running the full node on-device (embedded Node runtime
+or WASM SQLite + browser libp2p transports) and routing it through Tor (Orbot)
+are the next milestones.
+
+```bash
+npm -w @pforum/mobile run add:android   # once
+npm -w @pforum/mobile run add:ios       # once, macOS
+npm -w @pforum/mobile run sync          # build web UI + copy into native projects
+npm -w @pforum/mobile run open:android  # or open:ios
 ```
 
 ## Local daemon API
@@ -199,30 +474,42 @@ DELETE /networks/:id/members/:key  remove a member (owner/admin)
 ## Testing
 
 ```bash
-npm test          # unit + integration (28 tests)
+npm test          # unit + integration (49 tests)
 npm run typecheck # tsc across all packages
 ```
 
 The integration suite (`packages/node/test/integration.test.ts`) spins up three
 real libp2p nodes with in-memory databases and asserts they converge on the same
-topic snapshot — including third-node propagation via peer discovery.
+topic snapshot — including third-node propagation via peer discovery. The
+anonymous-mode suite (`packages/node/test/tor.test.ts`) asserts that a Tor node
+announces only `.onion` addresses and refuses clearnet peers.
 
 ## Security notes (MVP scope)
 
 - **Private keys are stored in plaintext** in the SQLite `identity` table.
   Encrypting the keystore (as the original did with a password) is a planned
   follow-up; the schema already isolates the secret.
-- The daemon has **no auth token**; it is safe only because it binds to loopback.
-  Add a bearer token before exposing it on a non-loopback interface.
+- The daemon binds to loopback by default and now supports an optional bearer
+  token (`--token`). Always set it before exposing the API on a non-loopback
+  interface.
+- In `--tor` mode no clearnet address is dialed or announced. Note that Tor
+  hides your IP but does not hide that you use Tor from your ISP (unless you
+  use bridges), and the stable author key still links all of a user's posts.
 - Received content is verified (content address + Ed25519 signature) before it is
   stored, but it is **auto-accepted** by default (`autoAcceptReceived`). Moderation
   based on the original `status`/reputation model is a follow-up.
 
 ## Roadmap
 
+- **Per-network unlinkable identities:** derive a distinct author subkey per
+  network (HKDF) so the same person is not linkable across communities.
 - **Encrypted networks (Fase B):** per-epoch group keys (XChaCha20-Poly1305),
   wrapped per member via Ed25519→X25519 ECDH, rotated on add/remove — so a
   removed member cannot read *future* posts.
+- **Mobile node on-device:** run the full node inside the Capacitor app
+  (embedded Node runtime or WASM SQLite + browser libp2p transports) and route it
+  through Tor (Orbot). The desktop app and the mobile shell already exist — see
+  [`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md).
 - Kademlia DHT + AutoNAT + Circuit Relay v2 + DCUtR, so invites and sync work
   across NATs without a manually shared address or port forwarding.
 - GossipSub push for sub-second propagation instead of periodic pull.
@@ -234,7 +521,11 @@ topic snapshot — including third-node propagation via peer discovery.
 
 ## License
 
-This is a reimplementation inspired by the original PeerForum project. Add the
-license you intend to use before distributing.
+O PeerForum é **software livre e de código aberto**. Este repositório é uma
+reimplementação inspirada no projeto original
+[saintthor/PeerForum](https://github.com/saintthor/PeerForum).
+
+> ⚠️ **TODO:** escolha e adicione um arquivo `LICENSE` (ex.: MIT, Apache-2.0 ou
+> GPL-3.0) antes de distribuir, para deixar os termos de uso explícitos.
 
 

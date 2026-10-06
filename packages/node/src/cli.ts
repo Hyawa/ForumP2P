@@ -6,7 +6,16 @@
  *   tsx packages/node/src/cli.ts --db ./peerforum.db --port 7331
  *     [--listen /ip4/0.0.0.0/tcp/4001] [--bootstrap <multiaddr>]...
  *     [--no-mdns] [--no-sync] [--sync-interval 15000]
+ *
+ * Anonymous (Tor) mode:
+ *   tsx packages/node/src/cli.ts --tor --onion-dir ./hs --onion-port 80
+ *     [--tor-socks 127.0.0.1:9050] [--listen /ip4/127.0.0.1/tcp/4001]
+ *     [--token <bearer>]
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { type TorConfig } from './config';
 import { startDaemon } from './daemon';
 import { PFPNode } from './sync';
 
@@ -19,6 +28,12 @@ interface CliArgs {
   noMdns: boolean;
   noSync: boolean;
   syncIntervalMs?: number;
+  tor: boolean;
+  torSocks: string;
+  onion: string[];
+  onionDir?: string;
+  onionPort: number;
+  token?: string;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -30,6 +45,11 @@ function parseArgs(argv: string[]): CliArgs {
     bootstrap: [],
     noMdns: false,
     noSync: false,
+    tor: false,
+    torSocks: '127.0.0.1:9050',
+    onion: [],
+    onionPort: 80,
+    token: process.env.PFORUM_TOKEN,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -66,6 +86,29 @@ function parseArgs(argv: string[]): CliArgs {
         args.syncIntervalMs = Number(value);
         i += 1;
         break;
+      case '--tor':
+        args.tor = true;
+        break;
+      case '--tor-socks':
+        if (value) args.torSocks = value;
+        i += 1;
+        break;
+      case '--onion':
+        if (value) args.onion.push(value);
+        i += 1;
+        break;
+      case '--onion-dir':
+        args.onionDir = value;
+        i += 1;
+        break;
+      case '--onion-port':
+        args.onionPort = Number(value ?? args.onionPort);
+        i += 1;
+        break;
+      case '--token':
+        args.token = value;
+        i += 1;
+        break;
       default:
         break;
     }
@@ -74,26 +117,72 @@ function parseArgs(argv: string[]): CliArgs {
   return args;
 }
 
+/** Resolves the onion multiaddrs to announce from flags / HiddenService dir. */
+function resolveOnionAddrs(args: CliArgs): string[] {
+  const addrs = [...args.onion];
+  if (args.onionDir) {
+    const hostnamePath = join(args.onionDir, 'hostname');
+    const host = readFileSync(hostnamePath, 'utf8').trim();
+    if (host.length > 0) addrs.push(`/onion3/${host}/tcp/${args.onionPort}`);
+  }
+  return [...new Set(addrs)];
+}
+
+function buildTorConfig(args: CliArgs): TorConfig | null {
+  if (!args.tor) return null;
+  const [host, portRaw] = args.torSocks.split(':');
+  const announce = resolveOnionAddrs(args);
+  if (announce.length === 0) {
+    throw new Error('Tor mode requires --onion <multiaddr> or --onion-dir <path>');
+  }
+  return {
+    socksHost: host || '127.0.0.1',
+    socksPort: Number(portRaw ?? 9050),
+    announce,
+  };
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
+  const tor = buildTorConfig(args);
+
+  // Tor mode must never announce a public IP: listen on loopback only.
+  const listen =
+    args.listen.length > 0
+      ? args.listen
+      : tor
+        ? ['/ip4/127.0.0.1/tcp/4001']
+        : undefined;
 
   const node = await PFPNode.create({
     dbPath: args.db,
-    listen: args.listen.length > 0 ? args.listen : undefined,
+    listen,
     bootstrap: args.bootstrap,
-    enableMdns: !args.noMdns,
+    enableMdns: tor ? false : !args.noMdns,
+    tor,
     autoSync: !args.noSync,
     syncIntervalMs: args.syncIntervalMs,
   });
 
-  const server = await startDaemon(node, { host: args.host, port: args.port });
+  const server = await startDaemon(node, {
+    host: args.host,
+    port: args.port,
+    token: args.token,
+  });
 
   const status = node.status();
   // eslint-disable-next-line no-console
   console.log(`PFP node ${status.peerId} listening on:`);
   for (const addr of status.multiaddrs) console.log(`  ${addr}`);
   console.log(`Local daemon API: http://${args.host}:${args.port}`);
-  console.log(`Share a multiaddr above so friends can add you as a peer.`);
+  if (tor) {
+    console.log('Anonymous mode: dialing and announcing via Tor (.onion) only.');
+    console.log(
+      `Ensure a Tor HiddenService forwards a port to the libp2p listener (${listen?.join(', ')}).`,
+    );
+  } else {
+    console.log(`Share a multiaddr above so friends can add you as a peer.`);
+  }
 
   const shutdown = async (): Promise<void> => {
     await server.close();

@@ -5,10 +5,11 @@
  * The P2P side is libp2p; this server is purely a local control/read API plus
  * an SSE stream of newly received articles.
  *
- * NOTE (MVP): there is no auth token yet beyond the loopback binding. Add a
- * per-run bearer token before exposing this on a non-loopback interface.
+ * An optional bearer token (`options.token`) protects every route except
+ * `/health`; set it whenever the daemon is bound to a non-loopback interface.
  */
 import cors from '@fastify/cors';
+import fastifyStatic from '@fastify/static';
 import { LIMITS, ARTICLE_ID_REGEX } from '@pforum/protocol';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -46,6 +47,18 @@ const JoinBody = z.object({
 export interface DaemonOptions {
   host?: string;
   port?: number;
+  /**
+   * Optional bearer token. When set, every route except `GET /health`
+   * requires `Authorization: Bearer <token>`. Strongly recommended if the
+   * daemon is ever bound to a non-loopback interface.
+   */
+  token?: string;
+  /**
+   * Optional directory of a built web UI to serve at `/`. Used by the desktop
+   * shell so the renderer loads over HTTP (same origin as the API) instead of
+   * `file://`, which Chromium blocks for ES modules.
+   */
+  staticDir?: string;
 }
 
 export async function startDaemon(
@@ -54,6 +67,24 @@ export async function startDaemon(
 ): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   await app.register(cors, { origin: true });
+
+  if (options.staticDir) {
+    await app.register(fastifyStatic, {
+      root: options.staticDir,
+      index: ['index.html'],
+    });
+  }
+
+  if (options.token) {
+    const expected = `Bearer ${options.token}`;
+    app.addHook('onRequest', async (request, reply) => {
+      if (request.url.startsWith('/health')) return;
+      // EventSource cannot send headers, so also accept ?token= for the SSE stream.
+      const query = request.query as { token?: string } | undefined;
+      if (request.headers.authorization === expected || query?.token === options.token) return;
+      return reply.code(401).send({ error: 'unauthorized' });
+    });
+  }
 
   app.get('/health', async () => ({ ok: true }));
 

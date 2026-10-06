@@ -11,14 +11,14 @@ afterEach(async () => {
   await Promise.all(cleanups.splice(0).map((fn) => fn()));
 });
 
-async function makeDaemon(): Promise<{ node: PFPNode; base: string }> {
+async function makeDaemon(options: { token?: string } = {}): Promise<{ node: PFPNode; base: string }> {
   const node = await PFPNode.create({
     dbPath: ':memory:',
     listen: ['/ip4/127.0.0.1/tcp/0'],
     enableMdns: false,
     autoSync: false,
   });
-  const app = await startDaemon(node, { host: '127.0.0.1', port: 0 });
+  const app = await startDaemon(node, { host: '127.0.0.1', port: 0, token: options.token });
   const address = app.server.address() as AddressInfo;
   cleanups.push(async () => {
     await app.close();
@@ -59,6 +59,20 @@ describe('local daemon API', () => {
     };
     expect(status.peerId).toBe(node.peerId);
     expect(status.user).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('enforces a bearer token when configured', async () => {
+    const { base } = await makeDaemon({ token: 'sekret' });
+
+    expect((await fetch(`${base}/health`)).status).toBe(200);
+
+    const denied = await fetch(`${base}/status`);
+    expect(denied.status).toBe(401);
+
+    const allowed = await fetch(`${base}/status`, {
+      headers: { authorization: 'Bearer sekret' },
+    });
+    expect(allowed.status).toBe(200);
   });
 
   it('creates a network, invites, and syncs over HTTP', async () => {

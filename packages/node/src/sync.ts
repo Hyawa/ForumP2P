@@ -26,6 +26,7 @@ import {
 import { DEFAULT_CONFIG, type PFPNodeConfig } from './config';
 import { createPfpLibp2p, type PfpLibp2p } from './libp2p-node';
 import { requestResponse, serveSingle } from './rpc';
+import { isOnionMultiaddr } from './transports/tor';
 
 export interface SyncReport {
   peerId: string;
@@ -63,10 +64,16 @@ function peerIdFromMultiaddr(addr: Multiaddr): string | undefined {
 
 /**
  * Prefers a /p2p-qualified multiaddr: dialing a bare address (no peer id)
- * works once but breaks subsequent dials to the same peer.
+ * works once but breaks subsequent dials to the same peer. In Tor mode only
+ * onion addresses are ever returned.
  */
-function pickDialable(addrs: string[]): string | undefined {
-  return addrs.find((addr) => addr.includes('/p2p/')) ?? addrs[0];
+function pickDialable(addrs: string[], preferOnion = false): string | undefined {
+  const usable = preferOnion ? addrs.filter(isOnionString) : addrs;
+  return usable.find((addr) => addr.includes('/p2p/')) ?? usable[0];
+}
+
+function isOnionString(addr: string): boolean {
+  return addr.includes('/onion3/') || addr.includes('/onion/');
 }
 
 export class PFPNode {
@@ -97,6 +104,7 @@ export class PFPNode {
       listen: config.listen,
       bootstrap: config.bootstrap,
       enableMdns: config.enableMdns,
+      tor: config.tor,
     });
 
     const node = new PFPNode(forum, libp2p, config);
@@ -126,6 +134,23 @@ export class PFPNode {
     return this.libp2p.getMultiaddrs().map((addr) => addr.toString());
   }
 
+  /** True when the node is in anonymous (Tor) mode. */
+  get anonymous(): boolean {
+    return this.config.tor != null;
+  }
+
+  /**
+   * In Tor mode, only onion addresses are considered; clearnet addresses are
+   * dropped everywhere (hello bindings, peer gossip, invites, dials).
+   */
+  private sharesAddrs(addrs: string[]): string[] {
+    return this.anonymous ? addrs.filter(isOnionString) : addrs;
+  }
+
+  private dialTarget(addrs: string[]): string | undefined {
+    return pickDialable(addrs, this.anonymous);
+  }
+
   status(): NodeStatus {
     return {
       peerId: this.peerId,
@@ -147,7 +172,7 @@ export class PFPNode {
 
   private async buildHello(): Promise<HelloBinding> {
     const user = this.forum.identity.publicKey;
-    const addrs = this.multiaddrs;
+    const addrs = this.sharesAddrs(this.multiaddrs);
     const signature = await signHello(
       { user, peerId: this.peerId, addrs },
       this.forum.identity.privateKey,
@@ -162,8 +187,9 @@ export class PFPNode {
       binding.signature,
     );
     if (!ok) return false;
-    this.directory.set(binding.peerId, { user: binding.user, addrs: binding.addrs });
-    if (binding.addrs.length > 0) this.forum.peers.upsert(binding.peerId, binding.addrs);
+    const addrs = this.sharesAddrs(binding.addrs);
+    this.directory.set(binding.peerId, { user: binding.user, addrs });
+    if (addrs.length > 0) this.forum.peers.upsert(binding.peerId, addrs);
     return true;
   }
 
@@ -213,7 +239,7 @@ export class PFPNode {
   private registerDiscovery(): void {
     this.libp2p.addEventListener('peer:discovery', (event) => {
       const { id, multiaddrs } = event.detail;
-      const addresses = multiaddrs.map((addr) => addr.toString());
+      const addresses = this.sharesAddrs(multiaddrs.map((addr) => addr.toString()));
       if (addresses.length > 0) this.forum.peers.upsert(id.toString(), addresses);
     });
     this.libp2p.addEventListener('peer:connect', (event) => {
@@ -402,7 +428,9 @@ export class PFPNode {
     let learned = 0;
     for (const peer of reply.peers) {
       if (peer.peerId === this.peerId) continue;
-      this.forum.peers.upsert(peer.peerId, peer.multiaddrs);
+      const addrs = this.sharesAddrs(peer.multiaddrs);
+      if (addrs.length === 0) continue;
+      this.forum.peers.upsert(peer.peerId, addrs);
       learned += 1;
     }
     return learned;
@@ -418,7 +446,11 @@ export class PFPNode {
     networkId: string,
     options: CreateInviteOptions = {},
   ): Promise<{ code: string }> {
-    const { code } = await this.forum.createInvite(networkId, options, this.multiaddrs);
+    const { code } = await this.forum.createInvite(
+      networkId,
+      options,
+      this.sharesAddrs(this.multiaddrs),
+    );
     return { code };
   }
 
@@ -427,7 +459,7 @@ export class PFPNode {
     const invite = decodeInviteCode(code);
     if (!(await verifyInvite(invite))) throw new Error('invalid invite signature');
 
-    const address = invite.addrs.find((addr) => addr.includes('/p2p/')) ?? invite.addrs[0];
+    const address = this.dialTarget(invite.addrs);
     if (!address) throw new Error('invite has no reachable address');
     const target = multiaddr(address);
     const inviterPeer = peerIdFromMultiaddr(target);
@@ -458,7 +490,7 @@ export class PFPNode {
     const ops = this.forum.rosterOps(networkId);
     const peers = this.forum.peers.list({ exclude: this.peerId, limit: 50 });
     for (const peer of peers) {
-      const address = pickDialable(peer.multiaddrs);
+      const address = this.dialTarget(peer.multiaddrs);
       if (!address) continue;
       try {
         await this.rpc(multiaddr(address), PFP_PROTOCOLS.networks, {
@@ -491,7 +523,7 @@ export class PFPNode {
     });
     const reports: SyncReport[] = [];
     for (const peer of peers) {
-      const address = pickDialable(peer.multiaddrs);
+      const address = this.dialTarget(peer.multiaddrs);
       if (!address) continue;
       try {
         reports.push(await this.syncWithPeer(address));
@@ -510,7 +542,7 @@ export class PFPNode {
     });
     const reports: SyncReport[] = [];
     for (const peer of peers) {
-      const address = pickDialable(peer.multiaddrs);
+      const address = this.dialTarget(peer.multiaddrs);
       if (!address) continue;
       try {
         reports.push(await this.syncWithPeer(address, networkId));
@@ -523,6 +555,9 @@ export class PFPNode {
 
   /** Connects to a peer and records its address. */
   async addPeer(address: string): Promise<string> {
+    if (this.anonymous && !isOnionString(address)) {
+      throw new Error('anonymous mode only accepts .onion peer addresses');
+    }
     const connection = await this.libp2p.dial(multiaddr(address));
     const peerId = connection.remotePeer.toString();
     this.forum.peers.upsert(peerId, [address]);

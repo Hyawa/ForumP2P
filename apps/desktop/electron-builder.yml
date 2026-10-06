@@ -1,0 +1,39 @@
+appId: org.pforum.desktop
+productName: PeerForum
+copyright: PeerForum
+
+directories:
+  output: release
+  buildResources: build
+
+# The main process is bundled by esbuild, so only the bundle + the web UI are
+# shipped. The P2P dependency tree is not needed at runtime.
+files:
+  - dist/**
+  - package.json
+extraResources:
+  - from: ../../packages/web/dist
+    to: web
+
+asar: true
+
+win:
+  target:
+    - nsis
+  artifactName: ${productName}-${version}-setup.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+
+mac:
+  target:
+    - dmg
+  category: public.app-category.social-networking
+
+linux:
+  target:
+    - AppImage
+  category: Network
+  artifactName: ${productName}-${version}.${ext}

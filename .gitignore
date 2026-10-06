@@ -9,3 +9,9 @@ dist/
 coverage/
 .DS_Store
 *.tsbuildinfo
+
+# Packaging outputs
+apps/desktop/release/
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/.capacitor/

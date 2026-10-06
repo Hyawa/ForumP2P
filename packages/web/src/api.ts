@@ -8,12 +8,34 @@ import type {
   TopicDetail,
 } from './types';
 
-/** The local daemon API. Override with VITE_API_URL for a remote daemon. */
-export const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://127.0.0.1:7331';
+/**
+ * The daemon API base URL.
+ *
+ * Resolution order:
+ *  1. `window.__PF_API__` — injected at runtime by the Electron / Capacitor shell
+ *  2. `VITE_API_URL` — baked in at build time (e.g. a remote daemon)
+ *  3. the local daemon default
+ */
+function runtimeApiBase(): string | undefined {
+  const value = (globalThis as { __PF_API__?: unknown }).__PF_API__;
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function runtimeToken(): string | undefined {
+  const value = (globalThis as { __PF_TOKEN__?: unknown }).__PF_TOKEN__;
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+export const API_BASE =
+  runtimeApiBase() ?? (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://127.0.0.1:7331';
+
+const API_TOKEN = runtimeToken();
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (API_TOKEN) headers.Authorization = `Bearer ${API_TOKEN}`;
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     ...init,
   });
   if (!response.ok) {
@@ -72,7 +94,11 @@ export const api = {
 
 /** Subscribes to live article events. Returns an unsubscribe function. */
 export function subscribeArticles(onArticle: (article: Article) => void): () => void {
-  const source = new EventSource(`${API_BASE}/events`);
+  // EventSource cannot set headers, so a token is passed as a query param.
+  const url = API_TOKEN
+    ? `${API_BASE}/events?token=${encodeURIComponent(API_TOKEN)}`
+    : `${API_BASE}/events`;
+  const source = new EventSource(url);
   source.onmessage = (event) => {
     try {
       onArticle(JSON.parse(event.data) as Article);
