@@ -11,19 +11,10 @@ export interface Topic {
   networkId: string | null;
 }
 
-export interface Peer {
-  peerId: string;
-  multiaddrs: string[];
-  level: number;
-  failCount: number;
-  lastSeen: number;
-  blocked: boolean;
-}
-
 export interface NodeStatus {
   peerId: string;
   user: string;
-  multiaddrs: string[];
+  anonymous: boolean;
   peers: number;
   topics: number;
   networks: number;

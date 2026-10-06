@@ -172,16 +172,20 @@ async function main(): Promise<void> {
 
   const status = node.status();
   // eslint-disable-next-line no-console
-  console.log(`PFP node ${status.peerId} listening on:`);
-  for (const addr of status.multiaddrs) console.log(`  ${addr}`);
+  console.log(`PFP node ${status.peerId} started.`);
   console.log(`Local daemon API: http://${args.host}:${args.port}`);
   if (tor) {
+    // Only onion addresses are ever printed; clearnet IPs are never exposed.
+    const onionAddrs = node.multiaddrs.filter((addr) => addr.includes('/onion'));
+    for (const addr of onionAddrs) console.log(`  ${addr}`);
     console.log('Anonymous mode: dialing and announcing via Tor (.onion) only.');
     console.log(
       `Ensure a Tor HiddenService forwards a port to the libp2p listener (${listen?.join(', ')}).`,
     );
   } else {
-    console.log(`Share a multiaddr above so friends can add you as a peer.`);
+    console.log(
+      'Addresses are hidden for privacy. Create a Network and share an invite code (or run with --tor for an .onion address).',
+    );
   }
 
   const shutdown = async (): Promise<void> => {

@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 
 import { api, subscribeArticles } from './api';
 import { copyText } from './clipboard';
-import type { Article, NetworkRole, NetworkSummary, NetworkView, NodeStatus, Peer, Topic } from './types';
+import type { Article, NetworkRole, NetworkSummary, NetworkView, NodeStatus, Topic } from './types';
 
 function shortKey(hex: string): string {
   return hex.length > 16 ? `${hex.slice(0, 8)}…${hex.slice(-4)}` : hex;
@@ -28,7 +28,7 @@ function CopyButton(props: { text: string; label?: string; className?: string })
   );
 }
 
-type View = { name: 'topics' } | { name: 'topic'; id: string } | { name: 'peers' } | { name: 'networks' } | { name: 'network'; id: string };
+type View = { name: 'topics' } | { name: 'topic'; id: string } | { name: 'networks' } | { name: 'network'; id: string };
 type NetworkFilter = 'all' | 'public' | string;
 
 function filterToParam(filter: NetworkFilter): string | null | undefined {
@@ -40,7 +40,6 @@ function filterToParam(filter: NetworkFilter): string | null | undefined {
 export function App() {
   const [status, setStatus] = useState<NodeStatus | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [peers, setPeers] = useState<Peer[]>([]);
   const [networks, setNetworks] = useState<NetworkSummary[]>([]);
   const [view, setView] = useState<View>({ name: 'topics' });
   const [filter, setFilter] = useState<NetworkFilter>('all');
@@ -67,14 +66,6 @@ export function App() {
     },
     [filter],
   );
-
-  const refreshPeers = useCallback(async () => {
-    try {
-      setPeers((await api.peers()).peers);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }, []);
 
   const refreshNetworks = useCallback(async () => {
     try {
@@ -107,7 +98,6 @@ export function App() {
   useEffect(() => {
     void refreshStatus();
     void refreshTopics('all');
-    void refreshPeers();
     void refreshNetworks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -158,25 +148,12 @@ export function App() {
           >
             Networks {status ? `(${status.networks})` : ''}
           </button>
-          <button
-            className={view.name === 'peers' ? 'active' : ''}
-            onClick={() => {
-              setView({ name: 'peers' });
-              void refreshPeers();
-            }}
-          >
-            Peers {status ? `(${status.peers})` : ''}
-          </button>
         </nav>
         {status && (
-          <div className="identity" title={`${status.peerId}\n${status.user}`}>
-            <div>
-              <span className="mono">{shortKey(status.peerId)}</span>
-              <span className="dim"> node</span>
-            </div>
+          <div className="identity" title={status.user}>
             <div>
               <span className="mono">{shortKey(status.user)}</span>
-              <span className="dim"> you</span>
+              <span className="dim"> você (anônimo)</span>
             </div>
           </div>
         )}
@@ -185,6 +162,13 @@ export function App() {
       {error && (
         <div className="banner error" onClick={() => setError(null)}>
           {error}
+        </div>
+      )}
+
+      {status && !status.anonymous && (
+        <div className="banner warn">
+          ⚠️ Modo sem Tor: seu endereço de rede pode ser exposto aos membros. Ative o modo Tor para
+          anonimato total.
         </div>
       )}
 
@@ -268,29 +252,6 @@ export function App() {
           />
         )}
         {view.name === 'network' && !networkView && <div className="muted">loading network…</div>}
-
-        {view.name === 'peers' && (
-          <PeersView
-            peers={peers}
-            myAddrs={status?.multiaddrs ?? []}
-            busy={busy}
-            onAdd={(address) =>
-              run(async () => {
-                await api.addPeer(address);
-                await refreshPeers();
-                await refreshStatus();
-              })
-            }
-            onSync={() =>
-              run(async () => {
-                await api.sync();
-                await refreshPeers();
-                await refreshTopics();
-                await refreshStatus();
-              })
-            }
-          />
-        )}
       </main>
     </div>
   );
@@ -643,67 +604,3 @@ function NetworkDetailView(props: {
   );
 }
 
-function PeersView(props: {
-  peers: Peer[];
-  myAddrs: string[];
-  busy: boolean;
-  onAdd: (address: string) => void;
-  onSync: () => void;
-}) {
-  const [address, setAddress] = useState('');
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (!address.trim()) return;
-    props.onAdd(address.trim());
-    setAddress('');
-  };
-
-  return (
-    <div className="peers-view">
-      <h2>Your addresses</h2>
-      <ul className="addr-list">
-        {props.myAddrs.map((addr) => (
-          <li key={addr} className="mono" title="Clique para copiar" onClick={() => void copyText(addr)}>
-            {addr}
-          </li>
-        ))}
-      </ul>
-
-      <h2>Add a peer</h2>
-      <form onSubmit={submit} className="card row">
-        <input
-          placeholder="/ip4/1.2.3.4/tcp/4001/p2p/12D3Koo…"
-          value={address}
-          onChange={(event) => setAddress(event.target.value)}
-        />
-        <button type="submit" disabled={props.busy}>
-          Connect
-        </button>
-        <button type="button" className="secondary" disabled={props.busy} onClick={props.onSync}>
-          Sync now
-        </button>
-      </form>
-
-      <h2>Known peers ({props.peers.length})</h2>
-      {props.peers.length === 0 && <p className="muted">No peers known yet.</p>}
-      <ul className="peer-list">
-        {props.peers.map((peer) => (
-          <li key={peer.peerId}>
-            <div className="mono">{shortKey(peer.peerId)}</div>
-            <div className="peer-meta">
-              <span className="pill">reputation {peer.level}</span>
-              <span className="pill">fails {peer.failCount}</span>
-              <span className="dim">{formatTime(peer.lastSeen)}</span>
-            </div>
-            {peer.multiaddrs.map((addr) => (
-              <div key={addr} className="mono dim small">
-                {addr}
-              </div>
-            ))}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}

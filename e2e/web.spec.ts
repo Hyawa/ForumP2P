@@ -52,3 +52,16 @@ test('posts a topic and a reply', async ({ page }) => {
   await page.getByRole('button', { name: 'Reply' }).click();
   await expect(page.getByText('E2E reply')).toBeVisible();
 });
+
+test('never exposes peers or network addresses in the UI', async ({ page }) => {
+  await page.goto(URL);
+  await expect(page.locator('.identity')).toBeVisible();
+
+  // The Peers tab (which listed addresses) must not exist anymore.
+  await expect(page.getByRole('button', { name: /^Peers/ })).toHaveCount(0);
+
+  // No raw IP or onion multiaddr must ever be rendered.
+  const html = await page.content();
+  expect(html).not.toMatch(/\/ip[46]\//);
+  expect(html).not.toMatch(/\/onion/);
+});

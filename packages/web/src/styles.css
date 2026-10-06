@@ -121,6 +121,13 @@ body {
   color: #ffc9c9;
 }
 
+.banner.warn {
+  background: #3a331d;
+  border: 1px solid #b58b2a;
+  color: #ffe8a3;
+  cursor: default;
+}
+
 .content {
   padding-top: 20px;
 }

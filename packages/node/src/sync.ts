@@ -38,7 +38,8 @@ export interface SyncReport {
 export interface NodeStatus {
   peerId: string;
   user: string;
-  multiaddrs: string[];
+  /** True when the node routes all traffic through Tor and exposes no IP. */
+  anonymous: boolean;
   peers: number;
   topics: number;
   networks: number;
@@ -156,7 +157,7 @@ export class PFPNode {
     return {
       peerId: this.peerId,
       user: this.forum.identity.publicKey,
-      multiaddrs: this.multiaddrs,
+      anonymous: this.anonymous,
       peers: this.forum.peers.list({ exclude: this.peerId, limit: 1000 }).length,
       topics: this.forum.listTopics({ limit: 1000 }).length,
       networks: this.forum.listNetworks().length,

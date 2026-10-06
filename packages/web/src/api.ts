@@ -3,7 +3,6 @@ import type {
   NetworkSummary,
   NetworkView,
   NodeStatus,
-  Peer,
   Topic,
   TopicDetail,
 } from './types';
@@ -93,10 +92,6 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ content }),
     }),
-  peers: () => request<{ peers: Peer[] }>('/peers'),
-  addPeer: (address: string) =>
-    request<{ peerId: string }>('/peers', { method: 'POST', body: JSON.stringify({ address }) }),
-  sync: () => request<{ reports: unknown[] }>('/sync', { method: 'POST' }),
 
   networks: () => request<NetworksResponse>('/networks'),
   createNetwork: (name: string) =>

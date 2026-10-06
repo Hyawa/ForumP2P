@@ -27,10 +27,6 @@ const ReplyBody = z.object({
   parentId: z.string().regex(ARTICLE_ID_REGEX).optional(),
 });
 
-const AddPeerBody = z.object({
-  address: z.string().min(1),
-});
-
 const NewNetworkBody = z.object({
   name: z.string().min(1).max(LIMITS.MAX_NETWORK_NAME_LEN),
 });
@@ -93,7 +89,6 @@ export async function startDaemon(
   app.get('/identity', async () => ({
     user: node.forum.identity.publicKey,
     node: node.peerId,
-    multiaddrs: node.multiaddrs,
   }));
 
   app.get('/topics', async (request) => {
@@ -148,21 +143,6 @@ export async function startDaemon(
       parentId: parsed.data.parentId ?? id,
     });
     return reply.code(201).send({ article });
-  });
-
-  app.get('/peers', async () => ({
-    peers: node.forum.peers.list({ exclude: node.peerId, limit: 200 }),
-  }));
-
-  app.post('/peers', async (request, reply) => {
-    const parsed = AddPeerBody.safeParse(request.body);
-    if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
-    try {
-      const peerId = await node.addPeer(parsed.data.address);
-      return reply.code(201).send({ peerId });
-    } catch (error) {
-      return reply.code(400).send({ error: (error as Error).message });
-    }
   });
 
   app.post('/sync', async () => ({ reports: await node.syncRound() }));
