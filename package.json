@@ -1,0 +1,24 @@
+{
+  "name": "peerforum",
+  "version": "2.0.0",
+  "private": true,
+  "description": "PFP v2 - a modern, serverless P2P forum (clean TypeScript/libp2p rewrite of PeerForum)",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json && npm -w @pforum/web run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "daemon": "tsx packages/node/src/cli.ts",
+    "web": "npm -w @pforum/web run dev"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^2.1.8"
+  }
+}
