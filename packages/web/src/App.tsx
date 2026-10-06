@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 
 import { api, subscribeArticles } from './api';
 import { copyText } from './clipboard';
-import type { Article, NetworkRole, NetworkSummary, NetworkView, NodeStatus, Topic } from './types';
+import type { Article, NetworkRole, NetworkSummary, NetworkView, NodeStatus, PfpSettings, TorSettings, Topic } from './types';
 
 function shortKey(hex: string): string {
   return hex.length > 16 ? `${hex.slice(0, 8)}…${hex.slice(-4)}` : hex;
@@ -28,7 +28,7 @@ function CopyButton(props: { text: string; label?: string; className?: string })
   );
 }
 
-type View = { name: 'topics' } | { name: 'topic'; id: string } | { name: 'networks' } | { name: 'network'; id: string };
+type View = { name: 'topics' } | { name: 'topic'; id: string } | { name: 'networks' } | { name: 'network'; id: string } | { name: 'settings' };
 type NetworkFilter = 'all' | 'public' | string;
 
 function filterToParam(filter: NetworkFilter): string | null | undefined {
@@ -148,6 +148,12 @@ export function App() {
           >
             Networks {status ? `(${status.networks})` : ''}
           </button>
+          <button
+            className={view.name === 'settings' ? 'active' : ''}
+            onClick={() => setView({ name: 'settings' })}
+          >
+            Configurações
+          </button>
         </nav>
         {status && (
           <div className="identity" title={status.user}>
@@ -252,6 +258,16 @@ export function App() {
           />
         )}
         {view.name === 'network' && !networkView && <div className="muted">loading network…</div>}
+
+        {view.name === 'settings' && (
+          <SettingsView
+            busy={busy}
+            onSaved={() => {
+              void refreshStatus();
+              void refreshTopics();
+            }}
+          />
+        )}
       </main>
     </div>
   );
@@ -600,6 +616,122 @@ function NetworkDetailView(props: {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+function SettingsView(props: { busy: boolean; onSaved: () => void }) {
+  const [settings, setSettings] = useState<PfpSettings | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .settings()
+      .then(setSettings)
+      .catch((err: Error) => setLoadError(err.message));
+  }, []);
+
+  if (loadError) {
+    return (
+      <div className="settings-view">
+        <h2>Configurações</h2>
+        <p className="muted">Indisponível: {loadError}</p>
+      </div>
+    );
+  }
+  if (!settings) return <div className="muted">carregando configurações…</div>;
+
+  const tor = settings.tor;
+  const update = (patch: Partial<TorSettings>) => {
+    setSaved(false);
+    setSettings({ tor: { ...tor, ...patch } });
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setSaved(false);
+    setSaveError(null);
+    try {
+      const result = await api.updateSettings(settings);
+      setSettings(result.settings);
+      setSaved(true);
+      props.onSaved();
+    } catch (err) {
+      setSaveError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="settings-view">
+      <h2>Configurações</h2>
+      <div className="card settings">
+        <label className="row check">
+          <input
+            type="checkbox"
+            checked={tor.enabled}
+            onChange={(event) => update({ enabled: event.target.checked })}
+          />
+          <span>
+            <strong>Modo anônimo (Tor)</strong> — esconde seu IP de todos os membros
+          </span>
+        </label>
+
+        {tor.enabled && (
+          <>
+            <div className="row">
+              <label>
+                SOCKS host
+                <input value={tor.socksHost} onChange={(e) => update({ socksHost: e.target.value })} />
+              </label>
+              <label>
+                SOCKS porta
+                <input
+                  type="number"
+                  value={tor.socksPort}
+                  onChange={(e) => update({ socksPort: Number(e.target.value) })}
+                />
+              </label>
+            </div>
+            <div className="row">
+              <label>
+                Seu endereço .onion
+                <input
+                  placeholder="ex: abc…xyz.onion"
+                  value={tor.onion}
+                  onChange={(e) => update({ onion: e.target.value })}
+                />
+              </label>
+              <label>
+                Porta do onion
+                <input
+                  type="number"
+                  value={tor.onionPort}
+                  onChange={(e) => update({ onionPort: Number(e.target.value) })}
+                />
+              </label>
+            </div>
+            <p className="muted small">
+              Desktop: aponte um HiddenService do Tor para 127.0.0.1:4001 e cole aqui o host do arquivo
+              <span className="mono"> hostname</span>. Android: use o Orbot (SOCKS 127.0.0.1:9050) com um
+              serviço onion para 127.0.0.1:4001. Sem um endereço .onion você ainda disca via Tor, mas não
+              pode receber convites.
+            </p>
+          </>
+        )}
+
+        <div className="row">
+          <button onClick={() => void save()} disabled={saving || props.busy}>
+            {saving ? 'Aplicando…' : 'Salvar'}
+          </button>
+          {saved && <span className="dim small">Salvo. O nó foi reiniciado com as novas configurações.</span>}
+          {saveError && <span className="error-text small">{saveError}</span>}
+        </div>
+      </div>
     </div>
   );
 }

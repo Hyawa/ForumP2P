@@ -371,6 +371,12 @@ announced, shared in `/pforum/hello`, and embedded in invite codes. A peer can
 therefore reach you without ever learning your IP, and your ISP only sees Tor
 traffic.
 
+**You don't need the CLI.** Open the app's **Configurações** tab and toggle
+**"Modo anônimo (Tor)"**; the node is rebuilt with the new settings and the
+change persists across restarts. The tab also lets you set the SOCKS host/port
+and your `.onion` address. When Tor is off, a warning banner reminds you that
+your network address may be exposed.
+
 1. Run Tor (or [Arti](https://arti.torproject.org/)) with a SOCKS port and a
    hidden service that forwards to the node's loopback listener:
 

@@ -3,6 +3,7 @@ import type {
   NetworkSummary,
   NetworkView,
   NodeStatus,
+  PfpSettings,
   Topic,
   TopicDetail,
 } from './types';
@@ -112,6 +113,13 @@ export const api = {
     }),
   removeMember: (id: string, pubkey: string) =>
     request<{ ok: boolean }>(`/networks/${id}/members/${pubkey}`, { method: 'DELETE' }),
+
+  settings: () => request<PfpSettings>('/settings'),
+  updateSettings: (settings: PfpSettings) =>
+    request<{ ok: boolean; settings: PfpSettings; status: NodeStatus }>('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }),
 };
 
 /** Subscribes to live article events. Returns an unsubscribe function. */

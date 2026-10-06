@@ -65,3 +65,24 @@ test('never exposes peers or network addresses in the UI', async ({ page }) => {
   expect(html).not.toMatch(/\/ip[46]\//);
   expect(html).not.toMatch(/\/onion/);
 });
+
+// Keep last: it toggles node settings (and resets them).
+test('enables and disables Tor from the Settings tab', async ({ page }) => {
+  await page.goto(URL);
+  await page.getByRole('button', { name: 'Configurações' }).click();
+
+  const torToggle = page.locator('.settings input[type="checkbox"]');
+  await expect(torToggle).not.toBeChecked();
+
+  await torToggle.check();
+  await page.getByRole('button', { name: 'Salvar' }).click();
+  await expect(page.getByText(/Salvo\./)).toBeVisible();
+  // Anonymous mode on -> the privacy warning disappears.
+  await expect(page.locator('.banner.warn')).toHaveCount(0);
+
+  // Reset so other runs start from the default.
+  await torToggle.uncheck();
+  await page.getByRole('button', { name: 'Salvar' }).click();
+  await expect(page.getByText(/Salvo\./)).toBeVisible();
+  await expect(page.locator('.banner.warn')).toBeVisible();
+});

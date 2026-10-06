@@ -14,6 +14,8 @@ import { LIMITS, ARTICLE_ID_REGEX } from '@pforum/protocol';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { isConfigurable, type PFPNodeProvider } from './controller';
+import type { PfpSettings } from './settings';
 import type { PFPNode } from './sync';
 
 const NewTopicBody = z.object({
@@ -40,6 +42,16 @@ const JoinBody = z.object({
   code: z.string().min(1),
 });
 
+const SettingsBody = z.object({
+  tor: z.object({
+    enabled: z.boolean(),
+    socksHost: z.string().min(1).max(255),
+    socksPort: z.number().int().min(1).max(65535),
+    onion: z.string().max(255),
+    onionPort: z.number().int().min(1).max(65535),
+  }),
+});
+
 export interface DaemonOptions {
   host?: string;
   port?: number;
@@ -57,11 +69,24 @@ export interface DaemonOptions {
   staticDir?: string;
 }
 
+/**
+ * Wraps the provider in a Proxy that always forwards to the *current* node, so
+ * routes keep working after a settings change rebuilds the node.
+ */
+function liveNode(provider: PFPNodeProvider): PFPNode {
+  return new Proxy({} as PFPNode, {
+    get: (_target, prop, receiver) => Reflect.get(provider.current, prop, receiver),
+    has: (_target, prop) => prop in provider.current,
+    set: (_target, prop, value) => Reflect.set(provider.current, prop, value),
+  });
+}
+
 export async function startDaemon(
-  node: PFPNode,
+  provider: PFPNodeProvider,
   options: DaemonOptions = {},
 ): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
+  const node = liveNode(provider);
   await app.register(cors, { origin: true });
 
   if (options.staticDir) {
@@ -85,6 +110,25 @@ export async function startDaemon(
   app.get('/health', async () => ({ ok: true }));
 
   app.get('/status', async () => node.status());
+
+  // --- settings (Tor, etc.) -------------------------------------------------
+
+  app.get('/settings', async (_request, reply) => {
+    if (!isConfigurable(provider)) return reply.code(501).send({ error: 'settings not supported' });
+    return provider.getSettings();
+  });
+
+  app.put('/settings', async (request, reply) => {
+    if (!isConfigurable(provider)) return reply.code(501).send({ error: 'settings not supported' });
+    const parsed = SettingsBody.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
+    try {
+      await provider.updateSettings(parsed.data as PfpSettings);
+      return { ok: true, settings: provider.getSettings(), status: provider.current.status() };
+    } catch (error) {
+      return reply.code(500).send({ error: (error as Error).message });
+    }
+  });
 
   app.get('/identity', async () => ({
     user: node.forum.identity.publicKey,

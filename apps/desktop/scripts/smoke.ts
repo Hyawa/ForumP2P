@@ -24,11 +24,14 @@ const node = await PFPNode.create({
   enableMdns: false,
   autoSync: false,
 });
-const server = await startDaemon(node, {
-  host: '127.0.0.1',
-  port: 0,
-  staticDir: hasWeb ? webDir : undefined,
-});
+const server = await startDaemon(
+  { current: node },
+  {
+    host: '127.0.0.1',
+    port: 0,
+    staticDir: hasWeb ? webDir : undefined,
+  },
+);
 
 try {
   const { port } = server.server.address() as AddressInfo;

@@ -378,3 +378,33 @@ select {
   font-family: ui-monospace, Consolas, monospace;
   font-size: 0.75rem;
 }
+
+.settings .row {
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.settings .row.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  flex: 1 1 180px;
+}
+
+.settings input[type='number'],
+.settings input[type='text'],
+.settings input:not([type]) {
+  width: 100%;
+}
+
+.error-text {
+  color: #ffc9c9;
+}
+

@@ -17,14 +17,14 @@ import type { AddressInfo } from 'node:net';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { PFPNode, startDaemon, type TorConfig } from '@pforum/node';
+import { PFPNodeController, startDaemon, type TorConfig } from '@pforum/node';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const isDev = process.argv.includes('--dev');
 
 type Daemon = Awaited<ReturnType<typeof startDaemon>>;
 
-let active: { node: PFPNode; server: Daemon } | null = null;
+let active: { controller: PFPNodeController; server: Daemon } | null = null;
 let quitting = false;
 
 function envFlag(name: string): boolean {
@@ -51,11 +51,11 @@ function torFromEnv(): TorConfig | null {
   };
 }
 
-async function startNode(): Promise<{ node: PFPNode; server: Daemon; apiUrl: string }> {
+async function startNode(): Promise<{ controller: PFPNodeController; server: Daemon; apiUrl: string }> {
   const tor = torFromEnv();
   const dbPath = process.env.PFORUM_DB ?? join(app.getPath('userData'), 'peerforum.db');
 
-  const node = await PFPNode.create({
+  const controller = await PFPNodeController.create({
     dbPath,
     listen: tor ? ['/ip4/127.0.0.1/tcp/4001'] : undefined,
     enableMdns: tor ? false : true,
@@ -63,7 +63,7 @@ async function startNode(): Promise<{ node: PFPNode; server: Daemon; apiUrl: str
     autoSync: !envFlag('PFORUM_NO_SYNC'),
   });
 
-  const server = await startDaemon(node, {
+  const server = await startDaemon(controller, {
     host: '127.0.0.1',
     port: 0,
     token: process.env.PFORUM_TOKEN,
@@ -71,7 +71,7 @@ async function startNode(): Promise<{ node: PFPNode; server: Daemon; apiUrl: str
     staticDir: isDev ? undefined : webDir(),
   });
   const address = server.server.address() as AddressInfo;
-  return { node, server, apiUrl: `http://127.0.0.1:${address.port}` };
+  return { controller, server, apiUrl: `http://127.0.0.1:${address.port}` };
 }
 
 /** Directory containing the built web UI (index.html + assets). */
@@ -129,7 +129,7 @@ async function bootstrap(): Promise<void> {
 
   await app.whenReady();
   const started = await startNode();
-  active = { node: started.node, server: started.server };
+  active = { controller: started.controller, server: started.server };
 
   await createWindow(started.apiUrl);
 
@@ -148,11 +148,11 @@ app.on('will-quit', (event) => {
   if (quitting || !active) return;
   event.preventDefault();
   quitting = true;
-  const { server, node } = active;
+  const { server, controller } = active;
   active = null;
   Promise.resolve(server.close())
     .catch(() => undefined)
-    .then(() => node.stop())
+    .then(() => controller.stop())
     .catch(() => undefined)
     .finally(() => app.quit());
 });

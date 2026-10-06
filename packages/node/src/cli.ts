@@ -16,8 +16,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { type TorConfig } from './config';
+import { PFPNodeController } from './controller';
 import { startDaemon } from './daemon';
-import { PFPNode } from './sync';
 
 interface CliArgs {
   db: string;
@@ -154,7 +154,7 @@ async function main(): Promise<void> {
         ? ['/ip4/127.0.0.1/tcp/4001']
         : undefined;
 
-  const node = await PFPNode.create({
+  const controller = await PFPNodeController.create({
     dbPath: args.db,
     listen,
     bootstrap: args.bootstrap,
@@ -163,8 +163,9 @@ async function main(): Promise<void> {
     autoSync: !args.noSync,
     syncIntervalMs: args.syncIntervalMs,
   });
+  const node = controller.current;
 
-  const server = await startDaemon(node, {
+  const server = await startDaemon(controller, {
     host: args.host,
     port: args.port,
     token: args.token,
@@ -190,7 +191,7 @@ async function main(): Promise<void> {
 
   const shutdown = async (): Promise<void> => {
     await server.close();
-    await node.stop();
+    await controller.stop();
     process.exit(0);
   };
   process.on('SIGINT', () => void shutdown());

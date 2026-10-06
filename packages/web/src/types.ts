@@ -20,6 +20,18 @@ export interface NodeStatus {
   networks: number;
 }
 
+export interface TorSettings {
+  enabled: boolean;
+  socksHost: string;
+  socksPort: number;
+  onion: string;
+  onionPort: number;
+}
+
+export interface PfpSettings {
+  tor: TorSettings;
+}
+
 export interface TopicDetail {
   topic: Topic;
   articles: SignedArticle[];

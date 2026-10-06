@@ -18,7 +18,7 @@ async function makeDaemon(options: { token?: string } = {}): Promise<{ node: PFP
     enableMdns: false,
     autoSync: false,
   });
-  const app = await startDaemon(node, { host: '127.0.0.1', port: 0, token: options.token });
+  const app = await startDaemon({ current: node }, { host: '127.0.0.1', port: 0, token: options.token });
   const address = app.server.address() as AddressInfo;
   cleanups.push(async () => {
     await app.close();

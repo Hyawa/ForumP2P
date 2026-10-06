@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { PFPNode, startDaemon, type TorConfig } from '@pforum/node';
+import { PFPNodeController, startDaemon, type TorConfig } from '@pforum/node';
 
 /**
  * Node.js entry point for the PeerForum mobile app.
@@ -60,7 +60,7 @@ async function main(): Promise<void> {
   const dbPath = process.env.PFORUM_DB ?? join(dataDir, 'peerforum.db');
 
   const tor = torFromEnv();
-  const node = await PFPNode.create({
+  const controller = await PFPNodeController.create({
     dbPath,
     dbDriver: 'wasm',
     listen: tor ? ['/ip4/127.0.0.1/tcp/4001'] : ['/ip4/127.0.0.1/tcp/0'],
@@ -68,9 +68,10 @@ async function main(): Promise<void> {
     tor,
     autoSync: !envFlag('PFORUM_NO_SYNC'),
   });
+  const node = controller.current;
 
   const port = Number(process.env.PFORUM_API_PORT ?? '7331');
-  await startDaemon(node, { host: '127.0.0.1', port });
+  await startDaemon(controller, { host: '127.0.0.1', port });
 
   bridge?.channel.post('pf-ready', {
     port,
