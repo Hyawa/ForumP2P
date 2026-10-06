@@ -531,7 +531,4 @@ O PeerForum é **software livre e de código aberto**. Este repositório é uma
 reimplementação inspirada no projeto original
 [saintthor/PeerForum](https://github.com/saintthor/PeerForum).
 
-> ⚠️ **TODO:** escolha e adicione um arquivo `LICENSE` (ex.: MIT, Apache-2.0 ou
-> GPL-3.0) antes de distribuir, para deixar os termos de uso explícitos.
-
 
