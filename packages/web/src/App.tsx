@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import QRCode from 'qrcode';
 
 import { api, subscribeArticles } from './api';
+import { copyText } from './clipboard';
 import type { Article, NetworkRole, NetworkSummary, NetworkView, NodeStatus, Peer, Topic } from './types';
 
 function shortKey(hex: string): string {
@@ -10,6 +11,21 @@ function shortKey(hex: string): string {
 
 function formatTime(ms: number): string {
   return new Date(ms).toLocaleString();
+}
+
+/** Button that copies text and shows a short "Copied!" confirmation. */
+function CopyButton(props: { text: string; label?: string; className?: string }) {
+  const [copied, setCopied] = useState(false);
+  const onClick = async () => {
+    const ok = await copyText(props.text);
+    setCopied(ok);
+    if (ok) window.setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <button className={props.className ?? 'secondary'} onClick={() => void onClick()}>
+      {copied ? 'Copiado!' : (props.label ?? 'Copiar')}
+    </button>
+  );
 }
 
 type View = { name: 'topics' } | { name: 'topic'; id: string } | { name: 'peers' } | { name: 'networks' } | { name: 'network'; id: string };
@@ -616,9 +632,7 @@ function NetworkDetailView(props: {
               <img src={invite.qr} alt="Invite QR code" width={200} height={200} />
               <textarea readOnly value={invite.code} rows={3} onFocus={(event) => event.target.select()} />
               <div className="row">
-                <button className="secondary" onClick={() => navigator.clipboard?.writeText(invite.code)}>
-                  Copy code
-                </button>
+                <CopyButton text={invite.code} label="Copiar código" />
                 <span className="dim small">One-time · expires as selected</span>
               </div>
             </div>
@@ -650,7 +664,7 @@ function PeersView(props: {
       <h2>Your addresses</h2>
       <ul className="addr-list">
         {props.myAddrs.map((addr) => (
-          <li key={addr} className="mono" onClick={() => navigator.clipboard?.writeText(addr)}>
+          <li key={addr} className="mono" title="Clique para copiar" onClick={() => void copyText(addr)}>
             {addr}
           </li>
         ))}

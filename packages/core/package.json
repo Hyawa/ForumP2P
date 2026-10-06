@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@pforum/protocol": "*"
+    "@pforum/protocol": "*",
+    "node-sqlite3-wasm": "^0.8.60"
   }
 }

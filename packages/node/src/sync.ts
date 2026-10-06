@@ -97,6 +97,7 @@ export class PFPNode {
     const forum = await Forum.open({
       dbPath: config.dbPath,
       autoAcceptReceived: config.autoAcceptReceived,
+      driver: config.dbDriver,
     });
     const nodeIdentity = await forum.ensureNodeIdentity();
     const libp2p = await createPfpLibp2p({

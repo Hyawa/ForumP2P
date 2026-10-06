@@ -3,6 +3,7 @@
  * network-tuning constants in the original `const.py` (sync cycles, peer
  * counts, time windows).
  */
+import type { SqliteDriver } from '@pforum/core';
 
 /**
  * Anonymous ("Tor") mode. When set, the node dials peers only through a local
@@ -23,6 +24,8 @@ export interface TorConfig {
 export interface PFPNodeConfig {
   /** SQLite file, or ':memory:'. */
   dbPath: string;
+  /** SQLite driver: 'node' (built-in) or 'wasm' (mobile/Node 18). */
+  dbDriver: SqliteDriver;
   /** libp2p listen multiaddrs. */
   listen: string[];
   /** Bootstrap peers as full multiaddrs (optionally with /p2p/<peerId>). */
@@ -45,6 +48,7 @@ export interface PFPNodeConfig {
 
 export const DEFAULT_CONFIG: PFPNodeConfig = {
   dbPath: './peerforum.db',
+  dbDriver: 'node',
   listen: ['/ip4/0.0.0.0/tcp/0', '/ip6/::/tcp/0'],
   bootstrap: [],
   enableMdns: true,

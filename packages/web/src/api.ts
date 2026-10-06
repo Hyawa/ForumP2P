@@ -31,13 +31,40 @@ export const API_BASE =
 
 const API_TOKEN = runtimeToken();
 
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Fetches with retry on network errors. On mobile the local node boots
+ * asynchronously, so the first requests can fail while it is still starting;
+ * idempotent (GET) requests are retried, mutations are not.
+ */
+async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
+  const method = (init?.method ?? 'GET').toUpperCase();
+  const retryable = method === 'GET' || method === 'HEAD';
+  const attempts = retryable ? 6 : 1;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await fetch(url, init);
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts - 1) await sleep(400 + attempt * 300);
+    }
+  }
+  throw lastError;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (API_TOKEN) headers.Authorization = `Bearer ${API_TOKEN}`;
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers,
-    ...init,
-  });
+  let response: Response;
+  try {
+    response = await fetchWithRetry(`${API_BASE}${path}`, { headers, ...init });
+  } catch {
+    throw new Error(
+      `Não foi possível falar com o nó local (${API_BASE}). Se for mobile, o nó pode ainda estar iniciando.`,
+    );
+  }
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? `request failed: ${response.status}`);

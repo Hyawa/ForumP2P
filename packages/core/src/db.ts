@@ -31,11 +31,21 @@ interface DatabaseSyncConstructor {
   new (location: string): DatabaseSyncInstance;
 }
 
-const nodeRequire = createRequire(import.meta.url);
-const sqliteSpecifier = ['node', 'sqlite'].join(':');
-const { DatabaseSync } = nodeRequire(sqliteSpecifier) as {
-  DatabaseSync: DatabaseSyncConstructor;
-};
+let databaseSyncCtor: DatabaseSyncConstructor | undefined;
+
+/**
+ * Lazily loads the built-in `node:sqlite` (Node >= 22). Kept lazy so the WASM
+ * driver can run on Node 18 (mobile), where `node:sqlite` does not exist.
+ * The computed specifier keeps bundlers from trying to resolve the built-in.
+ */
+function loadNodeSqlite(): DatabaseSyncConstructor {
+  if (databaseSyncCtor) return databaseSyncCtor;
+  const nodeRequire = createRequire(import.meta.url);
+  const sqliteSpecifier = ['node', 'sqlite'].join(':');
+  databaseSyncCtor = (nodeRequire(sqliteSpecifier) as { DatabaseSync: DatabaseSyncConstructor })
+    .DatabaseSync;
+  return databaseSyncCtor;
+}
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS identity (
@@ -133,11 +143,8 @@ function ensureColumn(
   }
 }
 
-export function openDatabase(location: string): SqlDatabase {
-  const db = new DatabaseSync(location);
-  if (location !== ':memory:') {
-    db.exec('PRAGMA journal_mode = WAL;');
-  }
+/** Applies the schema + migrations. Shared by every driver. */
+function initializeSchema(db: SqlDatabase): SqlDatabase {
   db.exec('PRAGMA foreign_keys = ON;');
   db.exec(SCHEMA);
   // Migrate databases created before networks existed. The columns must exist
@@ -147,6 +154,78 @@ export function openDatabase(location: string): SqlDatabase {
   db.exec('CREATE INDEX IF NOT EXISTS idx_articles_network ON articles(network_id);');
   db.exec('CREATE INDEX IF NOT EXISTS idx_topics_network ON topics(network_id);');
   return db;
+}
+
+/** Built-in `node:sqlite` driver (Node >= 22). Used by desktop/servers/tests. */
+function openNodeDatabase(location: string): SqlDatabase {
+  const DatabaseSync = loadNodeSqlite();
+  const db = new DatabaseSync(location);
+  if (location !== ':memory:') {
+    db.exec('PRAGMA journal_mode = WAL;');
+  }
+  return initializeSchema(db);
+}
+
+// --- WebAssembly driver (portable; used by the mobile Node 18 runtime) -------
+
+interface WasmRunResult {
+  changes: number;
+  lastInsertRowid: number | bigint;
+}
+
+interface WasmDatabase {
+  exec(sql: string): void;
+  run(sql: string, values?: unknown): WasmRunResult;
+  get(sql: string, values?: unknown): Record<string, unknown> | null;
+  all(sql: string, values?: unknown): Record<string, unknown>[];
+  close(): void;
+}
+
+interface WasmModule {
+  Database: new (filename?: string) => WasmDatabase;
+}
+
+/**
+ * Converts our variadic `prepare(...).run(a, b, c)` calls into the single
+ * `values` argument that `node-sqlite3-wasm` expects.
+ */
+function bindParams(params: unknown[]): unknown {
+  if (params.length === 0) return undefined;
+  if (params.length === 1) return params[0];
+  return params;
+}
+
+/**
+ * `node-sqlite3-wasm` driver: pure WebAssembly SQLite with direct file access.
+ * It is loaded via `createRequire` so bundlers leave it external (its `.wasm`
+ * is resolved at runtime from the package directory).
+ */
+function openWasmDatabase(location: string): SqlDatabase {
+  const nodeRequire = createRequire(import.meta.url);
+  const { Database } = nodeRequire('node-sqlite3-wasm') as WasmModule;
+  const db = new Database(location);
+  const adapter: SqlDatabase = {
+    exec: (sql) => db.exec(sql),
+    close: () => db.close(),
+    prepare: (sql) => ({
+      run: (...params) => db.run(sql, bindParams(params)),
+      get: (...params) => db.get(sql, bindParams(params)) ?? undefined,
+      all: (...params) => db.all(sql, bindParams(params)),
+    }),
+  };
+  // WAL is a filesystem feature the WASM VFS does not provide; skip it here.
+  return initializeSchema(adapter);
+}
+
+export type SqliteDriver = 'node' | 'wasm';
+
+/**
+ * Opens a SQLite database with the chosen driver.
+ * - `node` (default): built-in `node:sqlite` (Node >= 22).
+ * - `wasm`: `node-sqlite3-wasm` (works on Node 18, e.g. the mobile runtime).
+ */
+export function openDatabase(location: string, driver: SqliteDriver = 'node'): SqlDatabase {
+  return driver === 'wasm' ? openWasmDatabase(location) : openNodeDatabase(location);
 }
 
 export { SCHEMA };

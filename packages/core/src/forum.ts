@@ -35,7 +35,7 @@ import {
   type TopicHead,
 } from '@pforum/protocol';
 
-import { openDatabase, type SqlDatabase } from './db';
+import { openDatabase, type SqlDatabase, type SqliteDriver } from './db';
 import { IdentityManager, type Identity } from './identity';
 import { reconcile } from './reconcile';
 import { ForumStore, type InviteRecord, type PeerRecord, type TopicRecord } from './store';
@@ -45,6 +45,8 @@ export interface ForumOptions {
   dbPath: string;
   /** Accepting incoming content by default keeps the MVP gossip-able. */
   autoAcceptReceived?: boolean;
+  /** SQLite driver. Defaults to the built-in `node:sqlite`. */
+  driver?: SqliteDriver;
 }
 
 export type IngestStatus = 'stored' | 'duplicate' | 'invalid';
@@ -96,7 +98,7 @@ export class Forum {
   }
 
   static async open(options: ForumOptions): Promise<Forum> {
-    const db = openDatabase(options.dbPath);
+    const db = openDatabase(options.dbPath, options.driver);
     const identityManager = new IdentityManager(db, 'user');
     const user = await identityManager.ensure();
     return new Forum(db, user, options.autoAcceptReceived ?? true);

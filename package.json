@@ -12,6 +12,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && npm -w @pforum/web run typecheck && npm -w @pforum/desktop run typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "npm -w @pforum/web run build && npm -w @pforum/desktop run build:main && playwright test -c e2e/playwright.config.ts",
+    "test:e2e:web": "npm -w @pforum/web run build && playwright test -c e2e/playwright.config.ts --project=web",
     "daemon": "tsx packages/node/src/cli.ts",
     "web": "npm -w @pforum/web run dev",
     "desktop": "npm -w @pforum/desktop run dev",
@@ -19,6 +21,7 @@
     "mobile:sync": "npm -w @pforum/mobile run sync"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^22.10.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
